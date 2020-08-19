@@ -1,30 +1,60 @@
-import React from "react";
+import React, { useState, useEffect } from 'react';
 
-import "./styles.css";
+import './styles.css';
+
+import api from './services/api';
+import RepositoryList from './components/repository-list/repository-list.component';
 
 function App() {
+  const [repositories, setRepositories] = useState([]);
+
+  useEffect(() => {
+    api
+      .get('/repositories')
+      .then((response) => {
+        setRepositories(response.data);
+      })
+      .catch((error) => {
+        console.log(`Failed to get the repositories list\n\nError: ${error}`);
+      });
+  }, []);
+
   async function handleAddRepository() {
-    // TODO
+    try {
+      const response = await api.post('/repositories', {
+        title: `New Repository ${Date.now()}`,
+        url: 'http://github.com/testing-new-repo',
+        techs: ['NodeJS', 'ReactJS', 'GraphQL']
+      });
+
+      const newRepository = response.data;
+
+      setRepositories([...repositories, newRepository]);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  async function handleRemoveRepository(id) {
-    // TODO
+  async function handleRemoveRepository(repositoryId) {
+    try {
+      await api.delete(`/repositories/${repositoryId}`);
+
+      const remainingRepos = repositories.filter(
+        (repo) => repo.id !== repositoryId
+      );
+
+      setRepositories(remainingRepos);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   return (
-    <div>
-      <ul data-testid="repository-list">
-        <li>
-          Repositório 1
-
-          <button onClick={() => handleRemoveRepository(1)}>
-            Remover
-          </button>
-        </li>
-      </ul>
-
-      <button onClick={handleAddRepository}>Adicionar</button>
-    </div>
+    <RepositoryList
+      repositories={repositories}
+      saveCallback={handleAddRepository}
+      removeCallback={handleRemoveRepository}
+    />
   );
 }
 
